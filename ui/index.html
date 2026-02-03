@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BLOCCO 06 - Multimodal Verify (Laptop UI)</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:18px;max-width:920px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .card{border:1px solid #ddd;border-radius:10px;padding:12px;margin:10px 0}
+    label{font-size:12px;color:#333}
+    input,select,button{padding:8px;border-radius:8px;border:1px solid #ccc}
+    button{cursor:pointer}
+    .mono{font-family:Consolas,monospace;font-size:12px;white-space:pre-wrap}
+    .big{font-size:18px;font-weight:700}
+    .muted{color:#666;font-size:12px}
+  </style>
+</head>
+<body>
+  <h2>BLOCCO 06 — Multimodal Verify (Laptop UI)</h2>
+  <div class="muted">Flow: Start Challenge → Record → Verify. Policy determina SPOKEN/SILENT.</div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>Policy</label><br/>
+        <select id="policy">
+          <option value="STRICT_STANDARD">STRICT_STANDARD (SPOKEN)</option>
+          <option value="STRICT_SILENT">STRICT_SILENT (SILENT)</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Enrollment Face</label><br/>
+        <input id="enrollFace" placeholder="enrollment_id_face" size="26" />
+      </div>
+
+      <div id="voiceBox">
+        <label>Enrollment Voice</label><br/>
+        <input id="enrollVoice" placeholder="enrollment_id_voice" size="26" />
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button id="btnStart">Start Challenge</button>
+      <div>
+        <div class="muted">challenge_id</div>
+        <div class="mono" id="challengeId">—</div>
+      </div>
+      <div>
+        <div class="muted">challenge_text</div>
+        <div class="big" id="challengeText">—</div>
+      </div>
+      <div>
+        <div class="muted">timer</div>
+        <div class="mono" id="timer">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button id="btnRecord">Record</button>
+      <button id="btnStop" disabled>Stop</button>
+      <button id="btnVerify" disabled>Verify</button>
+      <div class="muted">Video sempre. Audio solo SPOKEN.</div>
+    </div>
+    <div style="margin-top:10px">
+      <video id="preview" controls playsinline style="width:100%;max-height:360px;background:#000"></video>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div class="big" id="finalDecision">—</div>
+      <div class="mono" id="proofFile"></div>
+    </div>
+    <div class="mono" id="breakdown"></div>
+    <div class="mono" id="flags"></div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

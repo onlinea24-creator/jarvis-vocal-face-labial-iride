@@ -1,0 +1,77 @@
+BLOCCO 06 — HANDOFF MEMO v1.0
+FILE: D:\BLOCCO 06\SSOT\BLOCCO_06_HANDOFF_MEMO_v1_0.txt
+
+WHAT WE BUILT (DELIVERED)
+- Orchestrator FastAPI: server/app_orchestrator_v1.py
+  - Endpoint: POST /api/multimodal/verify (multipart/form-data)
+  - Proxy UI helper: POST /api/challenge/start (same-origin proxy to CHALLENGE engine)
+  - Health: GET /health
+  - UI: GET /ui
+- UI Laptop minimal:
+  - D:\BLOCCO 06\ui\index.html
+  - D:\BLOCCO 06\ui\static\app.js
+- SSOT spec:
+  - D:\BLOCCO 06\docs\BLOCCO_06\BLOCCO_06_SSOT_ORCHESTRATOR_v1_0.txt
+- Packaging:
+  - ZIP: D:\BLOCCO 06\FINAL_TO_SEND_DEV\BLOCCO_06_ORCHESTRATOR_UI_v1_0.zip
+  - SHA256: 59d57c7dcce17e72ea3a91b9d808d499fe7b8466a6babe551e68277e908ee049
+
+CURRENT STATUS (TRUTH)
+- READY FOR INTEGRATION (NOT end-to-end verified with BLOCCO 01–05).
+- Orchestrator runs correctly on port 5016 when started via uvicorn.
+- UI opens and can record media, but SPOKEN mode sends clip_audio as the same webm container blob (not extracted wav).
+- Endpoints for modules are "assumed" and must be aligned to the real BLOCCO ports/paths.
+
+FOLDER LAYOUT (KEY PATHS)
+- Root: D:\BLOCCO 06
+- Code: D:\BLOCCO 06\server\app_orchestrator_v1.py
+- UI: D:\BLOCCO 06\ui\
+- Proofs: D:\BLOCCO 06\proofs\
+- Sessions raw: D:\BLOCCO 06\sessions\
+- Logs: D:\BLOCCO 06\logs\
+- SSOT spec: D:\BLOCCO 06\docs\BLOCCO_06\BLOCCO_06_SSOT_ORCHESTRATOR_v1_0.txt
+
+HOW TO RUN (LOCAL)
+- Create venv + deps already installed:
+  - requirements.txt includes fastapi/uvicorn/python-multipart/pydantic/httpx
+- Run server:
+  - .\.venv\Scripts\python.exe -m uvicorn server.app_orchestrator_v1:app --host 127.0.0.1 --port 5016
+
+ENV CONFIG (MODULE ROUTING)
+- Base URLs:
+  - CHALLENGE_BASE_URL (default http://127.0.0.1:5012)
+  - VOICE_BASE_URL
+  - FACE_BASE_URL
+  - LIPSYNC_BASE_URL
+  - VSR_BASE_URL
+  - FUSION_BASE_URL
+- Paths:
+  - CHALLENGE_START_PATH, CHALLENGE_VALIDATE_PATH
+  - VOICE_VERIFY_PATH, FACE_VERIFY_PATH
+  - LIPSYNC_VALIDATE_PATH, VSR_VALIDATE_PATH
+  - FUSION_EVALUATE_PATH
+- Timeouts:
+  - HTTP_TIMEOUT_S (default 25)
+  - HTTP_RETRIES (default 1)
+
+KNOWN GAPS / RISKS
+1) Endpoint mismatch risk: BLOCCO 01–05 real endpoints may differ. Need mapping or ENV overrides.
+2) SPOKEN audio format: UI currently does not extract wav. If VOICE engine requires wav/pcm, must:
+   - implement client-side audio extraction (WebAudio) OR
+   - accept container audio server-side / convert (ffmpeg) OR
+   - change UI to record audio separately.
+3) Challenge start: UI calls /api/challenge/start on orchestrator, which proxies to CHALLENGE engine. Must confirm CHALLENGE engine supports that JSON contract.
+
+NEXT ACTIONS (WHEN RESUMING)
+- Step 1: identify real ports/paths for BLOCCO 01–05 services (health + openapi).
+- Step 2: set ENV in launch command (or .env) to match.
+- Step 3: run 2 smoke tests via curl:
+  - STRICT_SILENT (video only)
+  - STRICT_STANDARD (video + audio)
+- Step 4: if VOICE needs wav, upgrade UI or server to produce wav.
+
+WINDOWS / PROCESS NOTES
+- Orchestrator PID previously: 5452 (terminated).
+- Port used: 5016.
+
+END MEMO

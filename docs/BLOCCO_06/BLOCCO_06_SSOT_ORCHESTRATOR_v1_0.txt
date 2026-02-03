@@ -1,0 +1,110 @@
+[BLOCCO 06 | MULTIMODAL VERIFY ENDPOINT + UI LAPTOP | v1.0]
+SSOT_FILE: D:\BLOCCO 06\docs\BLOCCO_06\BLOCCO_06_SSOT_ORCHESTRATOR_v1_0.txt
+
+GOAL
+- Endpoint unico: /api/multimodal/verify
+- UI laptop minimale per demo: Start Challenge -> Record -> Verify
+- Una sola proof finale generata dall’orchestrator (i moduli NON scrivono proof finali)
+
+HARD RULES (NON-NEGOTIABLE)
+1) Proof finale: SOLO orchestrator salva proofs/<proof_id>.json
+2) I moduli (voice/face/lipsync/vsr/challenge) devono restituire SOLO results (score/decision/flags/debug) senza scrivere proof finali.
+3) policy_id determina mode:
+   - STRICT_STANDARD => SPOKEN (audio richiesto)
+   - STRICT_SILENT   => SILENT (audio non richiesto; se presente va ignorato e flaggato)
+
+REQUEST FORMAT (OBBLIGATORIO)
+POST /api/multimodal/verify
+Content-Type: multipart/form-data
+
+Fields (form-data):
+- policy_id: STRICT_STANDARD | STRICT_SILENT (required)
+- enrollment_id_face: string (required)
+- enrollment_id_voice: string (required ONLY if policy_id=STRICT_STANDARD)
+- challenge_id: string (required)
+- accept_face: float (optional, default 0.85)
+- reject_face: float (optional, default 0.55)
+- accept_voice: float (optional, default 0.85)
+- reject_voice: float (optional, default 0.55)
+
+Files:
+- clip_video: file (required) mp4/webm
+- clip_audio: file (required ONLY if policy_id=STRICT_STANDARD) wav/webm
+  - if policy_id=STRICT_SILENT and clip_audio provided: ignore and add flag AUDIO_IGNORED_SILENT
+
+RESPONSE (SUCCESS ORCHESTRATION)
+HTTP 200 JSON:
+- ok: boolean (true if pipeline completed; false only on hard error)
+- final_decision: PASS | FAIL | INCONCLUSIVE
+- proof_id: string (e.g. PROOF-<hex>)
+- proof_file: string (path)
+- breakdown:
+  - voice_score: number|null
+  - face_score: number|null
+  - lipsync_score: number|null
+  - challenge_score: number|null
+  - vsr_score: number|null
+- flags_summary: string[] (union flags_* + fusion flags, max 20)
+- timings_ms: { total, challenge, voice, face, lipsync, vsr, fusion }
+
+ERROR MODEL (ALWAYS JSON)
+- HTTP 400: INVALID_INPUT / INVALID_POLICY / MISSING_FIELD
+- HTTP 409: CHALLENGE_EXPIRED / CHALLENGE_ALREADY_USED
+- HTTP 415: UNSUPPORTED_MEDIA
+- HTTP 500: INTERNAL_ERROR
+Body:
+- ok=false
+- error_code
+- error_message
+- flags_summary[] (if any)
+
+ORCHESTRATION FLOW (SERVER)
+1) Validate input/policy
+2) Derive mode from policy
+3) Challenge validate (BLOCCO 02)
+4) Run modules:
+   STRICT_STANDARD: Voice verify + Face verify + Lipsync
+   STRICT_SILENT:   Face verify + VSR validate
+5) Fusion evaluate (BLOCCO 05) => final_decision + flags
+6) Save session raw media + compute sha256 evidence_refs
+7) Save final proof JSON: proofs/<proof_id>.json
+8) Return response
+
+EVIDENCE / STORAGE LAYOUT
+- sessions/<session_id>/raw/
+  - clip_video.<ext>
+  - clip_audio.<ext> (only SPOKEN)
+  - metadata.json (policy_id, challenge_id, mime, timestamps)
+  - sha256.json (sha256 for raw + proof)
+- proofs/<proof_id>.json
+
+MODULE ENDPOINTS (CONFIG)
+- Orchestrator reads module base URLs from env (defaults):
+  - CHALLENGE_BASE_URL = http://127.0.0.1:5012
+  - VOICE_BASE_URL    = http://127.0.0.1:5011
+  - FACE_BASE_URL     = http://127.0.0.1:5013
+  - LIPSYNC_BASE_URL  = http://127.0.0.1:5014
+  - VSR_BASE_URL      = http://127.0.0.1:5014
+  - FUSION_BASE_URL   = http://127.0.0.1:5015
+- Each call is HTTP with timeouts + retries (safe)
+
+UI LAPTOP MINIMA (Browser)
+- /ui page:
+  - policy dropdown
+  - enrollment_id_face input
+  - enrollment_id_voice input (only if STRICT_STANDARD)
+  - Start Challenge button => calls /api/challenge/start (via CHALLENGE_BASE_URL) and shows challenge_text + timer
+  - Record button => records video always, audio only if SPOKEN
+  - Verify button => sends multipart to /api/multimodal/verify
+  - Result panel => PASS/FAIL/INCONCLUSIVE + proof_file + flags + breakdown
+
+DEMO
+- STRICT_STANDARD demo: voice+face+lipsync+challenge -> fusion -> proof
+- STRICT_SILENT demo: face+vsr+challenge -> fusion -> proof
+
+DONE CRITERIA
+- Endpoint returns PASS/FAIL/INCONCLUSIVE and writes proof json always when pipeline completes.
+- UI can run both policies end-to-end.
+- proofs generated and evidence sha256 present.
+
+END_SSOT
